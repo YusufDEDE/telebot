@@ -15,9 +15,10 @@ Press Ctrl-C on the command line or send a signal to the process to stop the
 bot.
 """
 
-import logging
-
 from telegram.ext import Updater, CommandHandler
+import requests
+from logging import Handler, Formatter
+import datetime
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -26,21 +27,48 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 
+commands = {  # command description used in the "help" command
+    'start'       : 'Get used to the bot',
+    'help'        : 'Gives you information about the available commands',
+    'sendLongText': 'A test using the \'send_chat_action\' command',
+    'getImage'    : 'A test using multi-stage messages, custom keyboard, and media sending',
+    'getVideo'    : 'Today videos!'
+}
 # Define a few command handlers. These usually take the two arguments update and
 # context. Error handlers also receive the raised TelegramError object in error.
+
+def help(update, context):
+    cid = update.message.chat_id
+    help_text = "The following commands are available: \n"
+    for key in commands:  # generate help text out of the commands dictionary defined at the top
+        help_text += "/" + key + ": "
+        help_text += commands[key] + "\n"
+    context.bot.send_message(cid, help_text)  # send the generated help page
+
+
 def start(update, context):
     update.message.reply_text('Hi! Use /set <seconds> to set a timer')
-
+    
 
 def alarm(context):
     """Send the alarm message."""
     job = context.job
     context.bot.send_message(job.context, text='Beep!')
 
+def hello(context):
+    job = context.job
+    context.bot.send_message(job.context, text='Hello whats up!')
+
+
+def test(update, context):
+    chat_id = update.message.chat_id
+    context.job_queue.run_once(hello, 10, context=chat_id)
+    print(chat_id)
+    print(str(update))
 
 def set_timer(update, context):
     """Add a job to the queue."""
-    chat_id = update.message.chat_id
+    chat_id = update.message.chat_id()
     try:
         # args[0] should contain the time for the timer in seconds
         due = int(context.args[0])
@@ -52,6 +80,8 @@ def set_timer(update, context):
         if 'job' in context.chat_data:
             old_job = context.chat_data['job']
             old_job.schedule_removal()
+
+
         new_job = context.job_queue.run_once(alarm, due, context=chat_id)
         context.chat_data['job'] = new_job
 
@@ -59,6 +89,7 @@ def set_timer(update, context):
 
     except (IndexError, ValueError):
         update.message.reply_text('Usage: /set <seconds>')
+
 
 
 def unset(update, context):
@@ -90,14 +121,15 @@ def main():
     dp = updater.dispatcher
 
     # on different commands - answer in Telegram
+    dp.add_handler(CommandHandler("help", help))
+    dp.add_handler(CommandHandler("test", test))
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", start))
-    dp.add_handler(CommandHandler("set", set_timer,
-                                  pass_args=True,
-                                  pass_job_queue=True,
-                                  pass_chat_data=True))
+    dp.add_handler(CommandHandler("set", set_timer,pass_args=True,pass_job_queue=True,pass_chat_data=True))
     dp.add_handler(CommandHandler("unset", unset, pass_chat_data=True))
+    
 
+    
     # log all errors
     dp.add_error_handler(error)
 
@@ -112,3 +144,5 @@ def main():
 
 if __name__ == '__main__':
     main()
+    
+    

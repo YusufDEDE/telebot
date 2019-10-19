@@ -4,8 +4,12 @@ This is a detailed example using almost every command of the API
 
 import time
 import logging
+from logging import Handler, Formatter
 import telebot
 from telebot import types
+from auto_message import paramGet, RequestsHandler, LogstashFormatter
+import requests
+import datetime
 
 logger = telebot.logger
 telebot.logger.setLevel(logging.DEBUG) #
@@ -13,6 +17,41 @@ telebot.logger.setLevel(logging.DEBUG) #
 TOKEN = '970406731:AAGRJVcUeDSnWZP39x70jRdcfvlmECVLHNQ'
 
 knownUsers = []  # todo: save these in a file,
+
+class RequestsHandler(Handler):
+    def emit(self, record):
+        log_entry = self.format(record)
+        for user in knownUsers:
+            payload = {
+                'chat_id': user,
+                'text': log_entry,
+                'parse_mode': 'HTML'
+            }
+            print(" ______________----------------------------=>",user)
+        
+        return requests.post("https://api.telegram.org/bot{token}/sendMessage".format(token=TOKEN),
+                             data=payload).content
+
+class LogstashFormatter(Formatter):
+    def __init__(self):
+        super(LogstashFormatter, self).__init__()
+
+    def format(self, record):
+        t = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+
+        return "<i>{datetime}</i><pre>\n{message}</pre>".format(message=record.msg, datetime=t)
+
+def filesave():
+    print(knownUsers)
+    with open("output.txt", "a") as knownUser_file:
+        for line in knownUsers:
+            knownUser_file.write('\n%d' % line )
+                
+def fileread():
+    with open("output.txt", 'r') as user_data:
+        knownUsers = [currentUser.rstrip() for currentUser in user_data.readlines()]
+
+
 userStep = {}  # so they won't reset every time the bot restarts
 
 commands = {  # command description used in the "help" command
@@ -67,6 +106,7 @@ def command_start(m):
         bot.send_message(cid, "Hello, stranger, let me scan you...")
         bot.send_message(cid, "Scanning complete, I know you now")
         command_help(m)  # show the new user the help page
+        filesave()
     else:
         bot.send_message(cid, "I already know you, no need for me to scan you again!")
 
@@ -130,7 +170,16 @@ def msg_video_select(m):
 # filter on a specific message
 @bot.message_handler(func=lambda message: message.text == "hi")
 def command_text_hi(m):
-    bot.send_message(m.chat.id, "I love you too!")
+    bot.send_message(m.chat.id, "actions ARMED!")
+    fileread()
+    
+    paramGet(TOKEN, m.chat.id)
+    handler = RequestsHandler()
+    formatter = LogstashFormatter()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.WARNING)
+    logger.error('Test simple message!')
 
 
 # default handler for every other text
@@ -140,4 +189,12 @@ def command_default(m):
     bot.send_message(m.chat.id, "I don't understand \"" + m.text + "\"\nMaybe try the help page at /help")
 
 
+@bot.message_handler(func=lambda message: message.text == "call")
+def caling(m):
+    bot.send_message(m.chat.id, "I love you too!")
+    
+
+
 bot.polling()
+
+
