@@ -7,7 +7,6 @@ import logging
 from logging import Handler, Formatter
 import telebot
 from telebot import types
-from auto_message import paramGet, RequestsHandler, LogstashFormatter
 import requests
 import datetime
 
@@ -173,7 +172,6 @@ def command_text_hi(m):
     bot.send_message(m.chat.id, "actions ARMED!")
     fileread()
     
-    paramGet(TOKEN, m.chat.id)
     handler = RequestsHandler()
     formatter = LogstashFormatter()
     handler.setFormatter(formatter)
