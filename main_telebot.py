@@ -9,6 +9,7 @@ import telebot
 from telebot import types
 import requests
 import datetime
+from auto_message import sendAuto_message
 
 logger = telebot.logger
 telebot.logger.setLevel(logging.DEBUG) #
@@ -17,28 +18,6 @@ TOKEN = '970406731:AAGRJVcUeDSnWZP39x70jRdcfvlmECVLHNQ'
 
 knownUsers = []  # todo: save these in a file,
 
-class RequestsHandler(Handler):
-    def emit(self, record):
-        log_entry = self.format(record)
-        for user in knownUsers:
-            payload = {
-                'chat_id': user,
-                'text': log_entry,
-                'parse_mode': 'HTML'
-            }
-            print(" ______________----------------------------=>",user)
-        
-        return requests.post("https://api.telegram.org/bot{token}/sendMessage".format(token=TOKEN),
-                             data=payload).content
-
-class LogstashFormatter(Formatter):
-    def __init__(self):
-        super(LogstashFormatter, self).__init__()
-
-    def format(self, record):
-        t = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-
-        return "<i>{datetime}</i><pre>\n{message}</pre>".format(message=record.msg, datetime=t)
 
 def filesave():
     print(knownUsers)
@@ -49,7 +28,8 @@ def filesave():
 def fileread():
     with open("output.txt", 'r') as user_data:
         knownUsers = [currentUser.rstrip() for currentUser in user_data.readlines()]
-
+        for user in knownUsers:
+            sendAuto_message(user)
 
 userStep = {}  # so they won't reset every time the bot restarts
 
@@ -170,15 +150,8 @@ def msg_video_select(m):
 @bot.message_handler(func=lambda message: message.text == "hi")
 def command_text_hi(m):
     bot.send_message(m.chat.id, "actions ARMED!")
-    fileread()
-    
-    handler = RequestsHandler()
-    formatter = LogstashFormatter()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.WARNING)
-    logger.error('Test simple message!')
 
+    
 
 # default handler for every other text
 @bot.message_handler(func=lambda message: True, content_types=['text'])
@@ -187,12 +160,20 @@ def command_default(m):
     bot.send_message(m.chat.id, "I don't understand \"" + m.text + "\"\nMaybe try the help page at /help")
 
 
-@bot.message_handler(func=lambda message: message.text == "call")
-def caling(m):
-    bot.send_message(m.chat.id, "I love you too!")
+@bot.message_handler(commands=['test'])
+def command_text_call(m):
+    bot.send_message(m.chat.id, "Okkey bro!")
+    
+    handler = RequestsHandler()
+    formatter = LogstashFormatter()
+    handler.setFormatter(formatter)
+    logger.addHandler(handler)
+    logger.setLevel(logging.WARNING)
+    logger.error('Test simple message!')
+
     
 
-
+fileread()
 bot.polling()
 
 
