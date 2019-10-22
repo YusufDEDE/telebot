@@ -30,14 +30,15 @@ commands = {  # command description used in the "help" command
 
 def filesave():
     print(knownUsers)
-    with open("output.txt", "a") as knownUser_file:
+    with open("chat_id.txt", "a") as knownUser_file:
         for line in knownUsers:
-            knownUser_file.write('\n%d' % line )
+            knownUser_file.write('%d\n' % int(line))
 
 def fileread():
-    with open("output.txt", 'r') as user_data:
+    with open("chat_id.txt", 'rb') as user_data:
         global knownUsers
-        knownUsers = [currentUser.rstrip() for currentUser in user_data.readlines()]
+        for user in user_data.read().split():
+            knownUsers.append(int(user))
         print(knownUsers)
         """for user in knownUsers:
             sendAuto_message(user, "Every successful hardware has a software behind.")"""
@@ -81,7 +82,13 @@ def auth(m):
     global keyIn
     keyIn = m.text
     if keyIn in key:
-        return bot.send_message(cid ,'True again start!')
+        knownUsers.append(cid)  # save user id, so you could brodcast messages to all users of this bot later
+        userStep[cid] = 0  # save user id and his current "command level", so he can use the "/getImage" command
+        bot.send_message(cid, "Hello, stranger, let me scan you...")
+        bot.send_message(cid, "Scanning complete, I know you now")
+        command_help(m)
+        print(knownUsers)
+        filesave()
     else:
         return bot.send_message(cid ,'False again start!')
 
@@ -89,89 +96,87 @@ def auth(m):
 @bot.message_handler(commands=['start'])
 def command_start(m):
     cid = m.chat.id
-    keyInput = m.text
-    msg = bot.send_message(cid ,'Please Key!')
-    bot.register_next_step_handler(msg, auth)
-    if keyIn in key:
-        if cid in knownUsers:  # if user hasn't used the "/start" command yet:
-            knownUsers.append(cid)  # save user id, so you could brodcast messages to all users of this bot later
-            userStep[cid] = 0  # save user id and his current "command level", so he can use the "/getImage" command
-            bot.send_message(cid, "Hello, stranger, let me scan you...")
-            bot.send_message(cid, "Scanning complete, I know you now")
-            command_help(m)  # show the new user the help page
-            #filesave()
-        else:
-            bot.send_message(cid, "I already know you, no need for me to scan you again!")
+    if cid in knownUsers:  # if user hasn't used the "/start" command yet:
+        bot.send_message(cid, 'You are logged in!')
+        bot.send_chat_action(cid, 'typing')
+        time.sleep(2)
+        bot.send_message(cid, "I already know you, no need for me to scan you again!")
     else:
         bot.send_message(cid, "Not permission!")
-
+        bot.send_chat_action(cid, 'typing')
+        time.sleep(2)
+        msg = bot.send_message(cid ,'Please Key!')
+        bot.register_next_step_handler(msg, auth)
 
 # help page
 @bot.message_handler(commands=['help'])
 def command_help(m):
     cid = m.chat.id
-    help_text = "The following commands are available: \n"
-    for key in commands:  # generate help text out of the commands dictionary defined at the top
-        help_text += "/" + key + ": "
-        help_text += commands[key] + "\n"
-    bot.send_message(cid, help_text)  # send the generated help page
+    if cid in knownUsers:
+        help_text = "The following commands are available: \n"
+        for key in commands:  # generate help text out of the commands dictionary defined at the top
+            help_text += "/" + key + ": "
+            help_text += commands[key] + "\n"
+        bot.send_message(cid, help_text)  # send the generated help page
 
 
 # chat_action example (not a good one...)
 @bot.message_handler(commands=['sendLongText'])
 def command_long_text(m):
     cid = m.chat.id
-    bot.send_message(cid, "If you think so...")
-    bot.send_chat_action(cid, 'typing')  # show the bot "typing" (max. 5 secs)
-    time.sleep(3)
-    bot.send_message(cid, ".")
+    if cid in knownUsers:
+        bot.send_message(cid, "If you think so...")
+        bot.send_chat_action(cid, 'typing')  # show the bot "typing" (max. 5 secs)
+        time.sleep(3)
+        bot.send_message(cid, ".")
 
 
 # user can chose an image (multi-stage command example)
 @bot.message_handler(commands=['getImage'])
 def command_image(m):
     cid = m.chat.id
-    bot.send_chat_action(cid, 'typing')
-    bot.send_photo(cid, open('media/robot.jpg', 'rb'))
-    bot.send_photo(cid, open('media/xp.jpg', 'rb'))
-    userStep[cid] = 1  # set the user to the next step (expecting a reply in the listener now)
+    if cid in knownUsers:
+        bot.send_chat_action(cid, 'typing')
+        bot.send_photo(cid, open('media/robot.jpg', 'rb'))
+        bot.send_photo(cid, open('media/xp.jpg', 'rb'))
+        userStep[cid] = 1  # set the user to the next step (expecting a reply in the listener now)
 
 
 @bot.message_handler(commands=['getVideo'])
 def command_video(m):
     cid = m.chat.id
-    bot.send_chat_action(cid, 'typing')
-    bot.send_video(cid, open('media/animation.mp4', 'rb'))
-    userStep[cid] = 0
+    if cid in knownUsers:
+        bot.send_chat_action(cid, 'typing')
+        bot.send_video(cid, open('media/animation.mp4', 'rb'))
+        userStep[cid] = 0
 
 
 # filter on a specific message
 @bot.message_handler(func=lambda message: message.text == "hi")
 def command_text_hi(m):
-    bot.send_message(m.chat.id, "actions ARMED!")
-
-
+    if cid in knownUsers:
+        bot.send_message(m.chat.id, "Hi bro what's up?")
 
 @bot.message_handler(commands=['getProverb'])
 def command_text_test(m):
     cid = m.chat.id
-    bot.send_chat_action(cid, 'typing')
-    time.sleep(3)
-    bot.send_message(cid, "Software comes from heaven when you have good hardware :)")
-    bot.send_chat_action(cid, 'typing')
-    time.sleep(2)
-    bot.send_message(cid, "Ken Olsen")
+    if cid in knownUsers:
+        bot.send_chat_action(cid, 'typing')
+        time.sleep(3)
+        bot.send_message(cid, "Software comes from heaven when you have good hardware :)")
+        bot.send_chat_action(cid, 'typing')
+        time.sleep(2)
+        bot.send_message(cid, "Ken Olsen")
 
 #############################################################################################################
 # default handler for every other text
 @bot.message_handler(func=lambda message: True, content_types=['text'])
 def command_default(m):
     # this is the standard reply to a normal message
-    bot.send_message(m.chat.id, "I don't understand \"" + m.text + "\"\nMaybe try the help page at /help")
+    if cid in knownUsers:
+        bot.send_message(m.chat.id, "I don't understand \"" + m.text + "\"\nMaybe try the help page at /help")
 
-
-
-
+#Execute functions
 fileread()
 keyfileRead()
 print(knownUsers)
