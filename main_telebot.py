@@ -4,8 +4,14 @@ import logging
 import requests
 import datetime
 from telebot import types
+from easyjwt import EasyJWT
 from logging import Handler, Formatter
 from auto_message import sendAuto_message
+import pyotp
+
+totp = pyotp.TOTP("JBSWY3DPEHPK3PXP",interval=120)
+token = totp.now()
+print("Current OTP:", token)
 
 logger = telebot.logger
 telebot.logger.setLevel(logging.DEBUG) #
@@ -81,7 +87,7 @@ def auth(m):
     cid = m.chat.id
     global keyIn
     keyIn = m.text
-    if keyIn in key:
+    if totp.verify(keyIn): # => True.verify():
         knownUsers.append(cid)  # save user id, so you could brodcast messages to all users of this bot later
         userStep[cid] = 0  # save user id and his current "command level", so he can use the "/getImage" command
         bot.send_message(cid, "Hello, stranger, let me scan you...")
@@ -90,7 +96,8 @@ def auth(m):
         print(knownUsers)
         filesave()
     else:
-        return bot.send_message(cid ,'False again start!')
+        return bot.send_message(cid ,'Code has expired or is incorrect!')
+
 
 # handle the "/start" command
 @bot.message_handler(commands=['start'])
@@ -102,10 +109,10 @@ def command_start(m):
         time.sleep(2)
         bot.send_message(cid, "I already know you, no need for me to scan you again!")
     else:
-        bot.send_message(cid, "Not permission!")
+        bot.send_message(cid, "Access denied!")
         bot.send_chat_action(cid, 'typing')
         time.sleep(2)
-        msg = bot.send_message(cid ,'Please Key!')
+        msg = bot.send_message(cid ,'Hello, Please enter the code you received by SMS or E-mail.')
         bot.register_next_step_handler(msg, auth)
 
 # help page
@@ -118,6 +125,8 @@ def command_help(m):
             help_text += "/" + key + ": "
             help_text += commands[key] + "\n"
         bot.send_message(cid, help_text)  # send the generated help page
+    else:
+        bot.send_message(m.chat.id, "You are not authorized to login. Please create a new code on the device. If you have the code, you can log in by typing /start .")
 
 
 # chat_action example (not a good one...)
@@ -129,6 +138,8 @@ def command_long_text(m):
         bot.send_chat_action(cid, 'typing')  # show the bot "typing" (max. 5 secs)
         time.sleep(3)
         bot.send_message(cid, ".")
+    else:
+        bot.send_message(m.chat.id, "You are not authorized to login. Please create a new code on the device. If you have the code, you can log in by typing /start .")
 
 
 # user can chose an image (multi-stage command example)
@@ -140,6 +151,8 @@ def command_image(m):
         bot.send_photo(cid, open('media/robot.jpg', 'rb'))
         bot.send_photo(cid, open('media/xp.jpg', 'rb'))
         userStep[cid] = 1  # set the user to the next step (expecting a reply in the listener now)
+    else:
+        bot.send_message(m.chat.id, "You are not authorized to login. Please create a new code on the device. If you have the code, you can log in by typing /start .")
 
 
 @bot.message_handler(commands=['getVideo'])
@@ -149,6 +162,8 @@ def command_video(m):
         bot.send_chat_action(cid, 'typing')
         bot.send_video(cid, open('media/animation.mp4', 'rb'))
         userStep[cid] = 0
+    else:
+        bot.send_message(m.chat.id, "You are not authorized to login. Please create a new code on the device. If you have the code, you can log in by typing /start .")
 
 
 # filter on a specific message
@@ -156,6 +171,8 @@ def command_video(m):
 def command_text_hi(m):
     if cid in knownUsers:
         bot.send_message(m.chat.id, "Hi bro what's up?")
+    else:
+        bot.send_message(m.chat.id, "You are not authorized to login. Please create a new code on the device. If you have the code, you can log in by typing /start .")
 
 @bot.message_handler(commands=['getProverb'])
 def command_text_test(m):
@@ -167,14 +184,20 @@ def command_text_test(m):
         bot.send_chat_action(cid, 'typing')
         time.sleep(2)
         bot.send_message(cid, "Ken Olsen")
+    else:
+        bot.send_message(m.chat.id, "You are not authorized to login. Please create a new code on the device. If you have the code, you can log in by typing /start .")
 
 #############################################################################################################
 # default handler for every other text
 @bot.message_handler(func=lambda message: True, content_types=['text'])
 def command_default(m):
     # this is the standard reply to a normal message
+    cid = m.chat.id
     if cid in knownUsers:
         bot.send_message(m.chat.id, "I don't understand \"" + m.text + "\"\nMaybe try the help page at /help")
+    else:
+        bot.send_message(m.chat.id, "You are not authorized to login. Please create a new code on the device. If you have the code, you can log in by typing /start .")
+
 
 #Execute functions
 fileread()
