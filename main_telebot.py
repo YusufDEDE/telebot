@@ -17,6 +17,16 @@ telebot.logger.setLevel(logging.DEBUG) #
 TOKEN = '970406731:AAGRJVcUeDSnWZP39x70jRdcfvlmECVLHNQ'
 
 knownUsers = []  # todo: save these in a file,
+userStep = {}  # so they won't reset every time the bot restarts
+
+commands = {  # command description used in the "help" command
+    'start'       : 'Get used to the bot',
+    'help'        : 'Gives you information about the available commands',
+    'sendLongText': 'A test using the \'send_chat_action\' command',
+    'getImage'    : 'Today image!',
+    'getVideo'    : 'Today video!',
+    'getProverb'  : 'Message of the day'
+}
 
 
 def filesave():
@@ -24,27 +34,12 @@ def filesave():
     with open("output.txt", "a") as knownUser_file:
         for line in knownUsers:
             knownUser_file.write('\n%d' % line )
-                
+
 def fileread():
     with open("output.txt", 'r') as user_data:
         knownUsers = [currentUser.rstrip() for currentUser in user_data.readlines()]
         for user in knownUsers:
             sendAuto_message(user)
-
-userStep = {}  # so they won't reset every time the bot restarts
-
-commands = {  # command description used in the "help" command
-    'start'       : 'Get used to the bot',
-    'help'        : 'Gives you information about the available commands',
-    'sendLongText': 'A test using the \'send_chat_action\' command',
-    'getImage'    : 'A test using multi-stage messages, custom keyboard, and media sending',
-    'getVideo'    : 'Today videos!'
-}
-
-imageSelect = types.ReplyKeyboardMarkup(one_time_keyboard=True)  # create the image selection keyboard
-imageSelect.add('The future!', 'Once upon a time!')
-
-hideBoard = types.ReplyKeyboardRemove()  # if sent as reply_markup, will hide the keyboard
 
 
 # error handling if user isn't known yet
@@ -115,34 +110,17 @@ def command_long_text(m):
 @bot.message_handler(commands=['getImage'])
 def command_image(m):
     cid = m.chat.id
-    bot.send_message(cid, "Please choose your image now", reply_markup=imageSelect)  # show the keyboard
+    bot.send_chat_action(cid, 'typing')
+    bot.send_photo(cid, open('media/robot.jpg', 'rb'))
+    bot.send_photo(cid, open('media/xp.jpg', 'rb'))
     userStep[cid] = 1  # set the user to the next step (expecting a reply in the listener now)
 
 
-# if the user has issued the "/getImage" command, process the answer
-@bot.message_handler(func=lambda message: get_user_step(message.chat.id) == 1)
-def msg_image_select(m):
+@bot.message_handler(commands=['getVideo'])
+def command_video(m):
     cid = m.chat.id
-    text = m.text
-
-    # for some reason the 'upload_photo' status isn't quite working (doesn't show at all)
     bot.send_chat_action(cid, 'typing')
-
-    if text == "The future!":  # send the appropriate image based on the reply to the "/getImage" command
-        bot.send_photo(cid, open('robot.jpg', 'rb'),
-                       reply_markup=hideBoard)  # send file and hide keyboard, after image is sent
-        userStep[cid] = 0  # reset the users step back to 0
-    elif text == "Once upon a time!":
-        bot.send_photo(cid, open('xp.jpg', 'rb'), reply_markup=hideBoard)
-        userStep[cid] = 0
-    else:
-        bot.send_message(cid, "Don't type bullsh*t, if I give you a predefined keyboard!")
-        bot.send_message(cid, "Please try again")
-
-@bot.message_handler(func=lambda message: get_user_step(message.chat.id) == 1)
-def msg_video_select(m):
-    cid = m.chat.id
-    bot.send_video(cid, open('animation.mp4', 'rb'), reply_markup=hideBoard)
+    bot.send_video(cid, open('media/animation.mp4', 'rb'))
     userStep[cid] = 0
 
 
@@ -151,8 +129,18 @@ def msg_video_select(m):
 def command_text_hi(m):
     bot.send_message(m.chat.id, "actions ARMED!")
 
-    
 
+@bot.message_handler(commands=['getProverb'])
+def command_text_test(m):
+    cid = m.chat.id
+    bot.send_chat_action(cid, 'typing')
+    time.sleep(3)
+    bot.send_message(cid, "Software comes from heaven when you have good hardware :)")
+    bot.send_chat_action(cid, 'typing')
+    time.sleep(2)
+    bot.send_message(cid, "Ken Olsen")
+
+#############################################################################################################
 # default handler for every other text
 @bot.message_handler(func=lambda message: True, content_types=['text'])
 def command_default(m):
@@ -160,20 +148,7 @@ def command_default(m):
     bot.send_message(m.chat.id, "I don't understand \"" + m.text + "\"\nMaybe try the help page at /help")
 
 
-@bot.message_handler(commands=['test'])
-def command_text_call(m):
-    bot.send_message(m.chat.id, "Okkey bro!")
-    
-    handler = RequestsHandler()
-    formatter = LogstashFormatter()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.WARNING)
-    logger.error('Test simple message!')
 
-    
 
 fileread()
 bot.polling()
-
-

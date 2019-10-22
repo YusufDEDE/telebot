@@ -42,4 +42,3 @@ def sendAuto_message(tchatID):
     logger.error('There is a ufak tefek problem!')
 
     print(TELEGRAM_CHAT_ID)
-
