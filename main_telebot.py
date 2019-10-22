@@ -1,20 +1,19 @@
-"""
-This is a detailed example using almost every command of the API
-"""
-
 import time
-import logging
-from logging import Handler, Formatter
 import telebot
-from telebot import types
+import logging
 import requests
 import datetime
+from telebot import types
+from logging import Handler, Formatter
 from auto_message import sendAuto_message
 
 logger = telebot.logger
 telebot.logger.setLevel(logging.DEBUG) #
 
 TOKEN = '970406731:AAGRJVcUeDSnWZP39x70jRdcfvlmECVLHNQ'
+
+key = [];
+keyIn = [];
 
 knownUsers = []  # todo: save these in a file,
 userStep = {}  # so they won't reset every time the bot restarts
@@ -37,9 +36,17 @@ def filesave():
 
 def fileread():
     with open("output.txt", 'r') as user_data:
+        global knownUsers
         knownUsers = [currentUser.rstrip() for currentUser in user_data.readlines()]
-        for user in knownUsers:
-            sendAuto_message(user)
+        print(knownUsers)
+        """for user in knownUsers:
+            sendAuto_message(user, "Every successful hardware has a software behind.")"""
+
+def keyfileRead():
+    with open("key.txt") as target:
+        global key
+        key = [currentKey.rstrip() for currentKey in target.readlines()]
+        print(key)
 
 
 # error handling if user isn't known yet
@@ -69,20 +76,34 @@ def listener(messages):
 bot = telebot.TeleBot(TOKEN)
 bot.set_update_listener(listener)  # register listener
 
+def auth(m):
+    cid = m.chat.id
+    global keyIn
+    keyIn = m.text
+    if keyIn in key:
+        return bot.send_message(cid ,'True again start!')
+    else:
+        return bot.send_message(cid ,'False again start!')
 
 # handle the "/start" command
 @bot.message_handler(commands=['start'])
 def command_start(m):
     cid = m.chat.id
-    if cid not in knownUsers:  # if user hasn't used the "/start" command yet:
-        knownUsers.append(cid)  # save user id, so you could brodcast messages to all users of this bot later
-        userStep[cid] = 0  # save user id and his current "command level", so he can use the "/getImage" command
-        bot.send_message(cid, "Hello, stranger, let me scan you...")
-        bot.send_message(cid, "Scanning complete, I know you now")
-        command_help(m)  # show the new user the help page
-        filesave()
+    keyInput = m.text
+    msg = bot.send_message(cid ,'Please Key!')
+    bot.register_next_step_handler(msg, auth)
+    if keyIn in key:
+        if cid in knownUsers:  # if user hasn't used the "/start" command yet:
+            knownUsers.append(cid)  # save user id, so you could brodcast messages to all users of this bot later
+            userStep[cid] = 0  # save user id and his current "command level", so he can use the "/getImage" command
+            bot.send_message(cid, "Hello, stranger, let me scan you...")
+            bot.send_message(cid, "Scanning complete, I know you now")
+            command_help(m)  # show the new user the help page
+            #filesave()
+        else:
+            bot.send_message(cid, "I already know you, no need for me to scan you again!")
     else:
-        bot.send_message(cid, "I already know you, no need for me to scan you again!")
+        bot.send_message(cid, "Not permission!")
 
 
 # help page
@@ -130,6 +151,7 @@ def command_text_hi(m):
     bot.send_message(m.chat.id, "actions ARMED!")
 
 
+
 @bot.message_handler(commands=['getProverb'])
 def command_text_test(m):
     cid = m.chat.id
@@ -151,4 +173,6 @@ def command_default(m):
 
 
 fileread()
+keyfileRead()
+print(knownUsers)
 bot.polling()

@@ -3,7 +3,7 @@ from logging import Handler, Formatter
 import logging
 import datetime
 
-def sendAuto_message(tchatID):
+def sendAuto_message(tchatID, message):
     TELEGRAM_TOKEN = '970406731:AAGRJVcUeDSnWZP39x70jRdcfvlmECVLHNQ'
     TELEGRAM_CHAT_ID = tchatID
 
@@ -39,6 +39,6 @@ def sendAuto_message(tchatID):
 
     logger.setLevel(logging.WARNING)
 
-    logger.error('There is a ufak tefek problem!')
+    logger.error(message)
 
     print(TELEGRAM_CHAT_ID)
