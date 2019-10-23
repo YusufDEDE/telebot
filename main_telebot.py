@@ -51,19 +51,6 @@ def fileread():
             knownUsers.append(int(user))
         print(knownUsers)
 
-# error handling if user isn't known yet
-# (obsolete once known users are saved to file, because all users
-#   had to use the /start command and are therefore known to the bot)
-def get_user_step(uid):
-    if uid in userStep:
-        return userStep[uid]
-    else:
-        knownUsers.append(uid)
-        userStep[uid] = 0
-        print("New user detected, who hasn't used \"/start\" yet")
-        return 0
-
-
 # only used for console output now
 def listener(messages):
     """
