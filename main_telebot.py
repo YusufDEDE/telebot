@@ -18,7 +18,6 @@ telebot.logger.setLevel(logging.DEBUG) #
 
 TOKEN = '970406731:AAGRJVcUeDSnWZP39x70jRdcfvlmECVLHNQ'
 
-key = [];
 keyIn = [];
 
 knownUsers = []  # todo: save these in a file,
@@ -52,15 +51,6 @@ def fileread():
         for user in user_data.read().split():
             knownUsers.append(int(user))
         print(knownUsers)
-        for user in knownUsers:
-            sendAuto_message(user, "Every successful hardware has a software behind.")
-
-def keyfileRead():
-    with open("key.txt") as target:
-        global key
-        key = [currentKey.rstrip() for currentKey in target.readlines()]
-        print(key)
-
 
 # error handling if user isn't known yet
 # (obsolete once known users are saved to file, because all users
@@ -181,6 +171,7 @@ def command_video(m):
 # filter on a specific message
 @bot.message_handler(func=lambda message: message.text == "hi")
 def command_text_hi(m):
+    cid = m.chat.id
     if cid in knownUsers:
         bot.send_message(m.chat.id, "Hi bro what's up?")
     else:
@@ -213,6 +204,5 @@ def command_default(m):
 
 #Execute functions
 fileread()
-keyfileRead()
 print(knownUsers)
 bot.polling()

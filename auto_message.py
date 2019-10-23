@@ -1,44 +1,33 @@
 import requests
-from logging import Handler, Formatter
-import logging
-import datetime
 
-def sendAuto_message(tchatID, message):
-    TELEGRAM_TOKEN = '970406731:AAGRJVcUeDSnWZP39x70jRdcfvlmECVLHNQ'
-    TELEGRAM_CHAT_ID = tchatID
+def sendImage(chat_id, caption, photo):
+    url = "https://api.telegram.org/bot970406731:AAGRJVcUeDSnWZP39x70jRdcfvlmECVLHNQ/sendPhoto"
+    files = {'photo': photo}
+    data = {'chat_id' : chat_id,
+             'caption': caption}
+    r = requests.post(url, files=files, data=data)
+    print(r.status_code, r.reason, r.content)
 
-    class RequestsHandler(Handler):
-        def emit(self, record):
-            log_entry = self.format(record)
-            payload = {
-                'chat_id': TELEGRAM_CHAT_ID,
-                'text': log_entry,
-                'parse_mode': 'HTML'
-            }
-            return requests.post("https://api.telegram.org/bot{token}/sendMessage".format(token=TELEGRAM_TOKEN),
-                                data=payload).content
+def sendVideo(chat_id, caption, video):
+    url = "https://api.telegram.org/bot970406731:AAGRJVcUeDSnWZP39x70jRdcfvlmECVLHNQ/sendVideo"
+    files = {'video': video}
+    data = {'chat_id' : "910667518",
+             'caption':caption}
+    r = requests.post(url, files=files, data=data)
+    print(r.status_code, r.reason, r.content)
 
-    class LogstashFormatter(Formatter):
-        def __init__(self):
-            super(LogstashFormatter, self).__init__()
-
-        def format(self, record):
-            t = datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-
-            return "<i>{datetime}</i><pre>\n{message}</pre>".format(message=record.msg, datetime=t)
+def sendMessage(chat_id, text):
+    url = "https://api.telegram.org/bot970406731:AAGRJVcUeDSnWZP39x70jRdcfvlmECVLHNQ/sendMessage"
+    data = {'chat_id' : chat_id,
+            'text': text}
+    r = requests.post(url,  data=data)
+    print(r.status_code, r.reason, r.content)
 
 
 
-    logger = logging.getLogger('trymeApp')
-    logger.setLevel(logging.WARNING)
+img = open('media/robot.jpg', 'rb')
+video = open('media/animation.mp4', 'rb')
 
-    handler = RequestsHandler()
-    formatter = LogstashFormatter()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-
-    logger.setLevel(logging.WARNING)
-
-    logger.error(message)
-
-    print(TELEGRAM_CHAT_ID)
+#sendImage(910667518, "The robot!", img)
+#sendVideo(910667518, "", video)
+#sendMessage(910667518, "test is success!")
