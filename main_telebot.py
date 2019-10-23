@@ -6,7 +6,6 @@ import datetime
 from telebot import types
 from easyjwt import EasyJWT
 from logging import Handler, Formatter
-from auto_message import sendAuto_message
 import pyotp
 
 totp = pyotp.TOTP("JBSWY3DPEHPK3PXP",interval=120)
@@ -18,7 +17,7 @@ telebot.logger.setLevel(logging.DEBUG) #
 
 TOKEN = '970406731:AAGRJVcUeDSnWZP39x70jRdcfvlmECVLHNQ'
 
-keyIn = [];
+keyIn = []
 
 knownUsers = []  # todo: save these in a file,
 userStep = {}  # so they won't reset every time the bot restarts
@@ -26,18 +25,12 @@ userStep = {}  # so they won't reset every time the bot restarts
 commands = {  # command description used in the "help" command
     'start'       : 'Get used to the bot',
     'help'        : 'Gives you information about the available commands',
+    'sendLongText': 'A test using the \'send_chat_action\' command',
     'getImage'    : 'Today image!',
     'getVideo'    : 'Today video!',
-    'getProverb'  : 'Message of the day',
-    'actionCode'  : 'Selet to action code'
+    'getProverb'  : 'Message of the day'
 }
 
-
-actionSelect = types.ReplyKeyboardMarkup(one_time_keyboard=True)  # create the image selection keyboard
-actionSelect.add('action 1', 'action 2', 'action 3', 'action 4',
-                'action 5', 'action 6', 'action 7', 'action 8')
-
-hideBoard = types.ReplyKeyboardRemove()
 
 def filesave():
     print(knownUsers)
@@ -51,6 +44,8 @@ def fileread():
         for user in user_data.read().split():
             knownUsers.append(int(user))
         print(knownUsers)
+        """for user in knownUsers:
+            sendAuto_message(user, "Every successful hardware has a software behind.")"""
 
 # error handling if user isn't known yet
 # (obsolete once known users are saved to file, because all users
@@ -101,8 +96,12 @@ def command_start(m):
     cid = m.chat.id
     if cid in knownUsers:  # if user hasn't used the "/start" command yet:
         bot.send_message(cid, 'You are logged in!')
+        bot.send_chat_action(cid, 'typing')
+        time.sleep(2)
         bot.send_message(cid, "I already know you, no need for me to scan you again!")
     else:
+        bot.send_chat_action(cid, 'typing')
+        time.sleep(2)
         msg = bot.send_message(cid ,'Hello, Please enter the code you received by SMS or E-mail.')
         bot.register_next_step_handler(msg, auth)
 
@@ -120,26 +119,15 @@ def command_help(m):
         bot.send_message(m.chat.id, "You are not authorized to login. Please create a new code on the device. If you have the code, you can log in by typing /start .")
 
 
-# user can chose an actionCode (multi-stage command example)
-@bot.message_handler(commands=['actionCode'])
-def command_actionCode(m):
-    cid = m.chat.id
-    bot.send_message(cid, "Please choose your action code now", reply_markup=actionSelect)  # show the keyboard
-    userStep[cid] = 1 # set the user to the next step (expecting a reply in the listener now)
-
-@bot.message_handler(func=lambda message: get_user_step(message.chat.id) == 1)
-def msg_actionCode_select(m):
+# chat_action example (not a good one...)
+@bot.message_handler(commands=['sendLongText'])
+def command_long_text(m):
     cid = m.chat.id
     if cid in knownUsers:
-        text = m.text
-        if text == "action 1":  # send the appropriate image based on the reply to the "/getImage" command
-            bot.send_message(m.chat.id, "action 1 start!", reply_markup=hideBoard)  # send file and hide keyboard, after image is sent
-            userStep[cid] = 0  # reset the users step back to 0
-        elif text == "action 2":
-            bot.send_message(m.chat.id, "action 2 start!", reply_markup=hideBoard)
-            userStep[cid] = 0
-        else:
-            bot.send_message(cid, "Don't type bullsh*t, if I give you a predefined keyboard!")
+        bot.send_message(cid, "If you think so...")
+        bot.send_chat_action(cid, 'typing')  # show the bot "typing" (max. 5 secs)
+        time.sleep(3)
+        bot.send_message(cid, ".")
     else:
         bot.send_message(m.chat.id, "You are not authorized to login. Please create a new code on the device. If you have the code, you can log in by typing /start .")
 
@@ -171,7 +159,6 @@ def command_video(m):
 # filter on a specific message
 @bot.message_handler(func=lambda message: message.text == "hi")
 def command_text_hi(m):
-    cid = m.chat.id
     if cid in knownUsers:
         bot.send_message(m.chat.id, "Hi bro what's up?")
     else:
